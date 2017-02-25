@@ -1,2 +1,2 @@
-# kb-cookbooks
-Container for various implementation examples
+# Michael Hoffman - Knowledge Base - Cookbooks
+This repository is a container for various implementation examples

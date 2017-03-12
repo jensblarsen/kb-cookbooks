@@ -1,0 +1,182 @@
+version: '2'
+services:
+  registry:
+    restart: always
+    image: registry:2
+    ports: 
+      - 5000:5000
+    networks: 
+      - front-tier
+      - back-tier
+  nginx:
+    build: ./nginx
+    networks:
+      - front-tier
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - nexus:nexus
+      - gitlab:gitlab
+      - jenkins:jenkins
+      - sonar:sonar
+      - registry:registry
+      - traefik:traefik
+  nexus:
+        build: ./nexus
+        ports:
+                - "18081:8081"
+        networks:
+          - front-tier
+          - back-tier
+          
+        volumes:
+          - nexus-data:/sonatype-work          
+        restart: always
+          
+  jenkins:
+        build: ./jenkins
+        ports:
+                - "18080:8080"
+        links:
+                - nexus:nexus
+                - gitlab:gitlab
+                - registry:registry
+                - sonar:sonar
+                - selhub:hub
+        networks:
+          - front-tier
+          - back-tier
+        volumes:
+          - jenkins-data:/var/jenkins_home
+          - /var/run/docker.sock:/var/run/docker.sock
+        restart: always
+ 
+  sonar:
+        build: ./sonar
+        ports:
+                - "19000:9000"
+        networks:
+          - front-tier
+          - back-tier
+        volumes:
+                - sonar-data:/var/lib/postgresql/data
+        restart: always
+ 
+  selhub:
+        image: selenium/hub
+        ports:
+                - 4444:4444
+        networks:
+          - back-tier
+        restart: always
+        
+  nodeff:
+        image: selenium/node-firefox-debug
+        ports:
+                - "15900:5900"
+        links:
+                - selhub:hub
+        networks:
+          - back-tier
+        restart: always
+        
+  nodechrome:
+        image: selenium/node-chrome-debug
+        ports:
+                - "15901:5900"
+        links:
+                - selhub:hub
+        networks:
+          - back-tier
+        restart: always
+                 
+  gitlab:
+        build: ./gitlab
+        image: gitlab/gitlab-ce:latest
+        ports:
+                - "10080:80"
+                - "10022:22"
+        networks:
+          - front-tier
+          - back-tier
+        environment:
+                - TZ=America/Chicago
+                - GITLAB_TIMEZONE=Chicago
+ 
+                - GITLAB_SECRETS_DB_KEY_BASE=NmVlNmUzM2ZlYmFlYWQ2YjUxNzJmNmE2MG
+ 
+                - GITLAB_HOST=localhost
+                - GITLAB_PORT=10080
+                - GITLAB_SSH_PORT=10022
+ 
+                - GITLAB_NOTIFY_ON_BROKEN_BUILDS=true
+                - GITLAB_NOTIFY_PUSHER=false
+ 
+                - GITLAB_EMAIL=operator@localhost
+                - GITLAB_EMAIL_REPLY_TO=noreply@localhost
+                - GITLAB_INCOMING_EMAIL_ADDRESS=reply@localhost
+ 
+                - GITLAB_BACKUPS=daily
+                - GITLAB_BACKUP_TIME=01:00
+ 
+                - SMTP_ENABLED=false
+                - SMTP_DOMAIN=localdomain
+                - SMTP_HOST=localhost
+                - SMTP_PORT=587
+                - SMTP_USER=postmaster@localhost
+                - SMTP_PASS=password
+                - SMTP_STARTTLS=true
+                - SMTP_AUTHENTICATION=login
+ 
+                - IMAP_ENABLED=false
+                - IMAP_HOST=localhost
+                - IMAP_PORT=993
+                - IMAP_USER=postmaster@localhost
+                - IMAP_PASS=password
+                - IMAP_SSL=true
+                - IMAP_STARTTLS=false
+        volumes:
+                - gitlab-config-data:/etc/gitlab
+                - gitlab-logs-data:/var/opt/gitlab/postgresql/data
+                - gitlab-data:/var/opt/gitlab/git-data
+        restart: always
+ 
+  traefik:
+        image: traefik
+        command: --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
+        ports:
+          - "10081:80"
+          - "18082:8080"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - /dev/null:/traefik.toml
+        networks:
+          - front-tier
+          - back-tier
+ 
+volumes:
+  gitlab-config-data:
+    driver: local
+    
+  gitlab-logs-data:
+    driver: local
+ 
+  gitlab-data:
+    driver: local
+ 
+  nexus-data: 
+    driver: local
+    
+  sonar-data: 
+    driver: local
+ 
+  jenkins-data:
+    driver: local
+ 
+networks:
+  front-tier:
+    driver: bridge
+  back-tier:
+    driver: bridge 

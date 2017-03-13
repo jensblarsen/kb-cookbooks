@@ -1,0 +1,53 @@
+/*
+ * Gradle script for the To Do App
+ * 
+ */
+ 
+ // Defines the reposistory where dependencies will be pulled from
+ repositories {
+ 	// Configures the Maven Central 2 repository
+ 	mavenCentral()
+ }
+ 
+ // Applies the Java plug-in to this build
+ apply plugin: 'java'
+ 
+ // Applies the WAR plug-in to this build
+ apply plugin: 'war'
+ 
+ // Applies the Jetty plug-in for embedded container runtime
+ apply plugin: 'jetty'
+ 
+ // Identifies the project's version through a number scheme
+ version = 1.0
+ 
+ // Sets Java version compilation compatibility
+ sourceCompatibility = 1.6
+ 
+ jar {
+ 	// Adds Main-Class header to JAR file's manifest
+ 	manifest {
+ 		attributes 'Main-Class': 'com.michaelhoffmantech.gradle.todoapp.ToDoApp'
+ 	}
+ }
+ 
+ // Defines dependencies for the project
+ dependencies {
+ 	compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.1'
+ 	
+ 	providedCompile 'javax.servlet:servlet-api:2.5'
+ 	
+ 	runtime 'javax.servlet:jstl:1.1.2'
+ }
+ 
+ // Customization of the Jetty plug-in
+ jettyRun {
+ 	httpPort = 9090
+ 	contextPath = 'todo'
+ }
+ 
+ // This was added to create the gradle wrapper. I needed to run the 
+ // task to generate the files. 
+ task wrapper(type: Wrapper) {
+ 	gradleVersion = '3.0'
+ }

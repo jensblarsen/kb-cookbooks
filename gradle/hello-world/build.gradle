@@ -1,0 +1,9 @@
+task helloWorld {
+	doLast {
+		println 'Hello World!'
+	}
+}
+
+task helloWorldLeftShift << {
+	println 'Hello World Left Shift Operator!'
+}
